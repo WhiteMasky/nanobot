@@ -8,6 +8,9 @@ This index helps nanobot discover and remember available skills.
 
 When asked "What skills do you have?" or "What can you do?", reference this list:
 
+### 🛡️ Safety & Security (ALWAYS ACTIVE)
+- `security` - **CRITICAL** - Safety guidelines, blocked operations, incident response
+
 ### Development & DevOps
 - `docker` - Container management (build, run, deploy)
 - `github` - GitHub CLI operations (issues, PRs, CI)
@@ -35,27 +38,37 @@ All skills are in: `nanobot/skills/{skill-name}/SKILL.md`
 
 ## Requirements Status
 
-| Skill | Status | Dependencies |
-|-------|--------|--------------|
-| api-test | Available | curl |
-| clawhub | Available | - |
-| cron | Available | - |
-| data-analysis | Available | python3 |
-| docker | Optional | docker CLI |
-| github | Optional | gh CLI |
-| memory | Available | - |
-| pdf-tools | Available | python3 |
-| skill-creator | Available | - |
-| summarize | Optional | - |
-| tmux | Optional | tmux |
-| translate | Available | curl |
-| weather | Available | curl |
+| Skill | Status | Dependencies | Priority |
+|-------|--------|--------------|----------|
+| **security** | ✅ Always | - | **CRITICAL** |
+| api-test | Available | curl | Normal |
+| clawhub | Available | - | Normal |
+| cron | Available | - | Normal |
+| data-analysis | Available | python3 | Normal |
+| docker | Optional | docker CLI | Normal |
+| github | Optional | gh CLI | Normal |
+| memory | Available | - | Normal |
+| pdf-tools | Available | python3 | Normal |
+| skill-creator | Available | - | Normal |
+| summarize | Optional | - | Normal |
+| tmux | Optional | tmux | Normal |
+| translate | Available | curl | Normal |
+| weather | Available | curl | Normal |
+
+## Security Priority
+
+**The `security` skill is ALWAYS ACTIVE:**
+- Loaded before any operation
+- Referenced when user requests dangerous operations
+- Used to block unsafe commands
+- Educates users about safety
 
 ## How to Use Skills
 
 1. **Auto-discovery**: Skills are loaded automatically by `SkillsLoader`
 2. **On-demand**: Agent reads `SKILL.md` when user requests related task
 3. **Progressive**: Agent starts with summary, reads full content when needed
+4. **Security first**: Check `security` skill before any risky operation
 
 ## Adding New Skills
 
@@ -82,4 +95,21 @@ python -c "from nanobot.agent.skills import SkillsLoader; from pathlib import Pa
 
 # Test specific skill
 python -c "from nanobot.agent.skills import SkillsLoader; from pathlib import Path; print(SkillsLoader(Path('.')).load_skill('translate'))"
+
+# Verify security skill is available
+python -c "from nanobot.agent.skills import SkillsLoader; from pathlib import Path; s=SkillsLoader(Path('.')); print('security' in [x['name'] for x in s.list_skills()])"
 ```
+
+## Safety Checklist
+
+Before any operation, nanobot checks:
+
+- [ ] Is this operation safe?
+- [ ] Does it violate security guidelines?
+- [ ] Are there blocked command patterns?
+- [ ] Is the path within allowed directory?
+- [ ] Are API keys handled securely?
+- [ ] Is network call using HTTPS?
+- [ ] Are timeouts configured?
+
+**If any answer is NO: REFUSE and explain why.**
