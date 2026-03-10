@@ -7,12 +7,19 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
 
-# Allowed models list (Coding Plan subscription)
+# Allowed models list (Coding Plan + Bailian Platform)
 ALLOWED_MODELS = [
+    # Coding Plan - Programming models
     "qwen3.5-plus",
     "qwen3-max-2026-01-23",
     "qwen3-coder-next",
     "qwen3-coder-plus",
+    # Bailian Platform - Creative/Image models
+    "z-image-turbo",
+    "wanx2.1-pro",
+    "wanx-v1",
+    "text-embedding-v3",
+    # Other allowed models
     "glm-5",
     "glm-4.7",
     "kimi-k2.5",
@@ -250,7 +257,7 @@ class AgentDefaults(Base):
     def validate_model(cls, v: str) -> str:
         """Validate model is in allowed list."""
         v_lower = v.lower()
-        # Allow models with provider prefix (e.g., "dashscope/qwen3.5-plus")
+        # Allow models with provider prefix (e.g., "dashscope/qwen3.5-plus", "bailian/z-image-turbo")
         model_name = v_lower.split("/", 1)[-1] if "/" in v_lower else v_lower
         
         if model_name not in ALLOWED_MODELS:
@@ -258,7 +265,7 @@ class AgentDefaults(Base):
             raise ValueError(
                 f"Model '{v}' is not allowed. "
                 f"Allowed models: {allowed_str}. "
-                f"Current subscription: Coding Plan"
+                f"Use 'bailian/{model_name}' for Bailian platform or 'dashscope/{model_name}' for Coding Plan."
             )
         return v
 
@@ -288,7 +295,8 @@ class ProvidersConfig(Base):
     deepseek: ProviderConfig = Field(default_factory=ProviderConfig)
     groq: ProviderConfig = Field(default_factory=ProviderConfig)
     zhipu: ProviderConfig = Field(default_factory=ProviderConfig)
-    dashscope: ProviderConfig = Field(default_factory=ProviderConfig)  # 阿里云通义千问
+    dashscope: ProviderConfig = Field(default_factory=ProviderConfig)  # 阿里云通义千问 (Coding Plan)
+    bailian: ProviderConfig = Field(default_factory=ProviderConfig)  # 阿里云百炼平台 (创意/图像模型)
     vllm: ProviderConfig = Field(default_factory=ProviderConfig)
     gemini: ProviderConfig = Field(default_factory=ProviderConfig)
     moonshot: ProviderConfig = Field(default_factory=ProviderConfig)
