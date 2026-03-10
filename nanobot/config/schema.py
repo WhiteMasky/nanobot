@@ -3,9 +3,21 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
+
+# Allowed models list (Coding Plan subscription)
+ALLOWED_MODELS = [
+    "qwen3.5-plus",
+    "qwen3-max-2026-01-23",
+    "qwen3-coder-next",
+    "qwen3-coder-plus",
+    "glm-5",
+    "glm-4.7",
+    "kimi-k2.5",
+    "minimax-m2.5",
+]
 
 
 class Base(BaseModel):
@@ -223,7 +235,7 @@ class AgentDefaults(Base):
     """Default agent configuration."""
 
     workspace: str = "~/.nanobot/workspace"
-    model: str = "anthropic/claude-opus-4-5"
+    model: str = "qwen3.5-plus"  # Default model (must be in ALLOWED_MODELS)
     provider: str = (
         "auto"  # Provider name (e.g. "anthropic", "openrouter") or "auto" for auto-detection
     )
@@ -232,6 +244,23 @@ class AgentDefaults(Base):
     max_tool_iterations: int = 40
     memory_window: int = 100
     reasoning_effort: str | None = None  # low / medium / high — enables LLM thinking mode
+
+    @field_validator("model")
+    @classmethod
+    def validate_model(cls, v: str) -> str:
+        """Validate model is in allowed list."""
+        v_lower = v.lower()
+        # Allow models with provider prefix (e.g., "dashscope/qwen3.5-plus")
+        model_name = v_lower.split("/", 1)[-1] if "/" in v_lower else v_lower
+        
+        if model_name not in ALLOWED_MODELS:
+            allowed_str = ", ".join(ALLOWED_MODELS)
+            raise ValueError(
+                f"Model '{v}' is not allowed. "
+                f"Allowed models: {allowed_str}. "
+                f"Current subscription: Coding Plan"
+            )
+        return v
 
 
 class AgentsConfig(Base):
