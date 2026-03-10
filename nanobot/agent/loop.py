@@ -224,14 +224,29 @@ class AgentLoop:
                     thinking_blocks=response.thinking_blocks,
                 )
 
-                for tool_call in response.tool_calls:
-                    tools_used.append(tool_call.name)
-                    args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
-                    logger.info("Tool call: {}({})", tool_call.name, args_str[:200])
-                    result = await self.tools.execute(tool_call.name, tool_call.arguments)
-                    messages = self.context.add_tool_result(
-                        messages, tool_call.id, tool_call.name, result
-                    )
+                # Execute tools in parallel when independent
+                if len(response.tool_calls) > 1:
+                    logger.info("Executing {} tools in parallel", len(response.tool_calls))
+                    tool_results = await self.tools.execute_parallel([
+                        {"name": tc.name, "params": tc.arguments}
+                        for tc in response.tool_calls
+                    ])
+                    for tool_name, result in tool_results:
+                        tools_used.append(tool_name)
+                        # Find corresponding tool_call id
+                        tc_id = next((tc.id for tc in response.tool_calls if tc.name == tool_name), None)
+                        messages = self.context.add_tool_result(
+                            messages, tc_id or tool_name, tool_name, result
+                        )
+                else:
+                    for tool_call in response.tool_calls:
+                        tools_used.append(tool_call.name)
+                        args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
+                        logger.info("Tool call: {}({})", tool_call.name, args_str[:200])
+                        result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                        messages = self.context.add_tool_result(
+                            messages, tool_call.id, tool_call.name, result
+                        )
             else:
                 clean = self._strip_think(response.content)
                 # Don't persist error responses to session history — they can
