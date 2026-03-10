@@ -216,20 +216,31 @@ class ChannelManager:
                     timeout=1.0
                 )
 
+                # 🔍 路由日志：记录消息来源和目标
+                content_preview = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
+                logger.info(
+                    "📨 路由消息 | channel={} | chat_id={} | content={}",
+                    msg.channel, msg.chat_id, content_preview
+                )
+
                 if msg.metadata.get("_progress"):
                     if msg.metadata.get("_tool_hint") and not self.config.channels.send_tool_hints:
+                        logger.debug("⏭️ 跳过工具提示消息")
                         continue
                     if not msg.metadata.get("_tool_hint") and not self.config.channels.send_progress:
+                        logger.debug("⏭️ 跳过进度消息")
                         continue
 
                 channel = self.channels.get(msg.channel)
                 if channel:
                     try:
+                        logger.debug("✅ 发送到 channel={} chat_id={}", msg.channel, msg.chat_id)
                         await channel.send(msg)
+                        logger.debug("✅ 发送成功")
                     except Exception as e:
-                        logger.error("Error sending to {}: {}", msg.channel, e)
+                        logger.error("❌ 发送到 {} 失败：{} | chat_id={}", msg.channel, e, msg.chat_id)
                 else:
-                    logger.warning("Unknown channel: {}", msg.channel)
+                    logger.warning("❌ 未知 channel: {} | chat_id={}", msg.channel, msg.chat_id)
 
             except asyncio.TimeoutError:
                 continue

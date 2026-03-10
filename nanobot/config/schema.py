@@ -305,6 +305,7 @@ class HeartbeatConfig(Base):
 
     enabled: bool = True
     interval_s: int = 30 * 60  # 30 minutes
+    primary_channel: str = ""  # Target channel for automated messages (e.g., "dingtalk:group:cidmBp1ICicKKFhvWzQZ/qZzA==")
 
 
 class GatewayConfig(Base):

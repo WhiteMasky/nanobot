@@ -388,9 +388,25 @@ def gateway(
     channels = ChannelManager(config, bus)
 
     def _pick_heartbeat_target() -> tuple[str, str]:
-        """Pick a routable channel/chat target for heartbeat-triggered messages."""
+        """Pick a routable channel/chat target for heartbeat-triggered messages.
+        
+        Priority:
+        1. Configured primary_channel (explicit target for automated messages)
+        2. Most recently updated non-internal session on an enabled channel
+        3. Fallback to cli:direct
+        """
+        # 🔒 优先使用配置的 primary_channel，确保自动化推送隔离到指定群
+        hb_cfg = config.gateway.heartbeat
+        if hb_cfg.primary_channel and ":" in hb_cfg.primary_channel:
+            channel, chat_id = hb_cfg.primary_channel.split(":", 1)
+            enabled = set(channels.enabled_channels)
+            if channel in enabled and chat_id:
+                logger.info("Heartbeat: using configured primary_channel={} chat_id={}", channel, chat_id)
+                return channel, chat_id
+            logger.warning("Heartbeat: configured primary_channel '{}' is not enabled, falling back", hb_cfg.primary_channel)
+        
+        # Fallback: most recently updated session
         enabled = set(channels.enabled_channels)
-        # Prefer the most recently updated non-internal session on an enabled channel.
         for item in session_manager.list_sessions():
             key = item.get("key") or ""
             if ":" not in key:
@@ -399,8 +415,10 @@ def gateway(
             if channel in {"cli", "system"}:
                 continue
             if channel in enabled and chat_id:
+                logger.info("Heartbeat: using recent session channel={} chat_id={}", channel, chat_id)
                 return channel, chat_id
-        # Fallback keeps prior behavior but remains explicit.
+        
+        logger.warning("Heartbeat: no routable channel found, using fallback")
         return "cli", "direct"
 
     # Create heartbeat service
